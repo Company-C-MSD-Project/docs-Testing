@@ -24,21 +24,7 @@ are tested and all tests are passed.
 
 #Test Coverage
 The Postman collection includes comprehensive API tests covering:
-
-| Category | Number of Tests | Status |
-
-| Authentication | 8 | passed|
-| Admin Setup | 4 | passed|
-| Categories & Services | 4 | passed |
-| Smart Match | 2 | passed|
-| Bookings | 9 | passed|
-| Payments | 6 | passed|
-| Reviews | 3 | passed|
-| Notifications | 3 | passed|
-| Disputes | 6 | passed |
-Total 45 test cases are passed.
-
-Detailed Test Breakdown
+Test Breakdown
 1. Authentication Tests (8 tests)
 -  Register Homeowner
 -  Register Service Provider
@@ -101,6 +87,7 @@ Detailed Test Breakdown
 -  Resolve Dispute (Admin)
 -  Resolve Dispute as Homeowner (should fail)
 -  Get All Disputes (Admin)
+Total 45 test cases are passed.
 
 # Prerequisites
 - [Postman](https://www.postman.com/downloads/) installed (v10+)
@@ -108,24 +95,22 @@ Detailed Test Breakdown
 - Stripe test keys configured on the backend (for payment tests)
 - Database seeded with initial test data (or run registration tests first)
 
-#Environment Variables Used
-| Variable | Description | Example Value |
+#Environment Variables Used,
+1.`baseUrl` : API Base URL - `http://localhost:8080` 
+2.`homeownerEmail` :Test homeowner email - `alice.123@fixitnow.test`
+3.`providerEmail` : Test provider email - `bob.456@fixitnow.test` 
+4.`adminEmail` : Test admin email -`carol.789@fixitnow.test`
+5.`homeownerToken` : JWT Token (auto-set) -Auto-generated on login 
+6.`providerToken` :JWT Token (auto-set) -Auto-generated on login 
+7.`adminToken` :JWT Token (auto-set) - Auto-generated on login
+8.`homeownerId` : User ID (auto-set)- Auto-set after registration 
+9.`providerId` :User ID (auto-set) - Auto-set after registration 
+10.`adminId` :User ID (auto-set) -Auto-set after registration 
+11.`categoryId` :Category ID (auto-set) - Auto-set after creation 
+12.`serviceId` :Service ID (auto-set) -Auto-set after creation 
+13.`bookingId` : Booking ID (auto-set) - Auto-set after creation 
+14.`paymentId` : Payment ID (auto-set) - Auto-set after initiation
+15.`stripeIntentId` : Stripe Payment Intent - Auto-set on payment initiation 
+16.`notificationId` : Notification ID (auto-set) - Auto-set from first notification 
 
-| `baseUrl` | API Base URL | `http://localhost:8080` |
-| `homeownerEmail` | Test homeowner email | `alice.123@fixitnow.test` |
-| `providerEmail` | Test provider email | `bob.456@fixitnow.test` |
-| `adminEmail` | Test admin email | `carol.789@fixitnow.test` |
-| `homeownerToken` | JWT Token (auto-set) | Auto-generated on login |
-| `providerToken` | JWT Token (auto-set) | Auto-generated on login |
-| `adminToken` | JWT Token (auto-set) | Auto-generated on login |
-| `homeownerId` | User ID (auto-set) | Auto-set after registration |
-| `providerId` | User ID (auto-set) | Auto-set after registration |
-| `adminId` | User ID (auto-set) | Auto-set after registration |
-| `categoryId` | Category ID (auto-set) | Auto-set after creation |
-| `serviceId` | Service ID (auto-set) | Auto-set after creation |
-| `bookingId` | Booking ID (auto-set) | Auto-set after creation |
-| `paymentId` | Payment ID (auto-set) | Auto-set after initiation |
-| `stripeIntentId` | Stripe Payment Intent | Auto-set on payment initiation |
-| `notificationId` | Notification ID (auto-set) | Auto-set from first notification |
-
-The collection uses variable chaining - later requests reuse IDs/tokens saved automatically by earlier ones.
+The collection uses variable chaining , later requests reuse IDs/tokens saved automatically by earlier ones.
