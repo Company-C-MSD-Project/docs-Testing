@@ -1,0 +1,1010 @@
+{
+  "info": {
+    "name": "FixItNow API Tests",
+    "description": "API test suite for the FixItNow backend. Covers Auth, Bookings, Smart Match, Payments, Reviews, Notifications, Disputes, Categories, Services, and Admin endpoints.\n\nHOW TO USE:\n1. Import this collection AND the companion environment file into Postman.\n2. Select the 'FixItNow Local' environment (top-right dropdown).\n3. Run requests in order from top to bottom inside each folder — later requests reuse IDs/tokens saved automatically by earlier ones.\n4. Use the 'Runner' (Collection > ... > Run collection) to execute everything in one click and see a pass/fail report.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register Homeowner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has success true', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});",
+                  "pm.test('User type is HOMEOWNER', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.userType).to.eql('HOMEOWNER');",
+                  "});",
+                  "pm.test('Password hash is never returned', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.passwordHash).to.be.null;",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('homeownerId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alice Homeowner\",\n  \"email\": \"alice.{{$randomInt}}@fixitnow.test\",\n  \"username\": \"alice_{{$randomInt}}\",\n  \"password\": \"SecurePass1!\",\n  \"phone\": \"0771234567\",\n  \"address\": \"12 Main St, Colombo\",\n  \"userType\": \"HOMEOWNER\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Register Service Provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Provider starts unverified', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.verified).to.be.false;",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('providerId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bob Provider\",\n  \"email\": \"bob.{{$randomInt}}@fixitnow.test\",\n  \"username\": \"bob_{{$randomInt}}\",\n  \"password\": \"ProvPass99!\",\n  \"phone\": \"0779876543\",\n  \"userType\": \"SERVICE_PROVIDER\",\n  \"serviceCategory\": \"Plumbing\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    pm.environment.set('adminId', pm.response.json().data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Carol Admin\",\n  \"email\": \"carol.{{$randomInt}}@fixitnow.test\",\n  \"username\": \"carol_{{$randomInt}}\",\n  \"password\": \"AdminPass1!\",\n  \"userType\": \"ADMIN\",\n  \"department\": \"Operations\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Register Duplicate Email (should fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions already registered', () => {",
+                  "    pm.expect(pm.response.text()).to.include('already registered');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate Alice\",\n  \"email\": \"duplicate@fixitnow.test\",\n  \"username\": \"dupuser1\",\n  \"password\": \"SecurePass1!\",\n  \"userType\": \"HOMEOWNER\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "description": "Run this request TWICE in a row. The second run should fail with 400."
+          }
+        },
+        {
+          "name": "Login Homeowner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Token is present', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.token).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Token type is Bearer', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.data.tokenType).to.eql('Bearer');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.environment.set('homeownerToken', json.data.token);",
+                  "    pm.environment.set('homeownerId', json.data.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{homeownerEmail}}\",\n  \"password\": \"SecurePass1!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "NOTE: Set 'homeownerEmail' in the environment to match the email used in 'Register Homeowner' before running this. Or replace {{homeownerEmail}} with a known seeded user."
+          }
+        },
+        {
+          "name": "Login Wrong Password (should fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 401 Unauthorized', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{homeownerEmail}}\",\n  \"password\": \"WrongPassword!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login Provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.environment.set('providerToken', json.data.token);",
+                  "    pm.environment.set('providerId', json.data.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{providerEmail}}\",\n  \"password\": \"ProvPass99!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.environment.set('adminToken', json.data.token);",
+                  "    pm.environment.set('adminId', json.data.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"{{adminEmail}}\",\n  \"password\": \"AdminPass1!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin Setup (verify provider)",
+      "item": [
+        {
+          "name": "Verify Provider",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Provider is now verified', () => {",
+                  "    pm.expect(pm.response.json().data.verified).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/providers/{{providerId}}/verify",
+              "host": ["{{baseUrl}}"], "path": ["api", "admin", "providers", "{{providerId}}", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Providers",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/providers/pending", "host": ["{{baseUrl}}"], "path": ["api", "admin", "providers", "pending"] }
+          }
+        },
+        {
+          "name": "Get Analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Contains totalUsers field', () => {",
+                  "    pm.expect(pm.response.json().data).to.have.property('totalUsers');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/admin/analytics", "host": ["{{baseUrl}}"], "path": ["api", "admin", "analytics"] }
+          }
+        },
+        {
+          "name": "Admin Endpoint Without Token (should fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status is 401 or 403', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"], "type": "text/javascript" }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/admin/analytics", "host": ["{{baseUrl}}"], "path": ["api", "admin", "analytics"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Categories & Services",
+      "item": [
+        {
+          "name": "Create Category (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.environment.set('categoryId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Plumbing\",\n  \"description\": \"Pipe repairs, leaks, installations\",\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "Get All Categories",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+          }
+        },
+        {
+          "name": "Create Service Under Category (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.environment.set('serviceId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Pipe Leak Repair\",\n  \"description\": \"Fix leaking pipes\",\n  \"dayPayment\": 3500.00,\n  \"isActive\": true\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/services/category/{{categoryId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "services", "category", "{{categoryId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get All Services",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/services", "host": ["{{baseUrl}}"], "path": ["api", "services"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Smart Match",
+      "item": [
+        {
+          "name": "Find Matching Providers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/match?category=Plumbing&lat=6.9271&lng=79.8612",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings", "match"],
+              "query": [
+                { "key": "category", "value": "Plumbing" },
+                { "key": "lat", "value": "6.9271" },
+                { "key": "lng", "value": "79.8612" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Match Without Token (should fail)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 401 or 403', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/match?category=Plumbing&lat=6.9271&lng=79.8612",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings", "match"],
+              "query": [
+                { "key": "category", "value": "Plumbing" },
+                { "key": "lat", "value": "6.9271" },
+                { "key": "lng", "value": "79.8612" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Bookings",
+      "item": [
+        {
+          "name": "Create Booking (Homeowner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status field is PENDING', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('PENDING');",
+                  "});",
+                  "if (pm.response.code === 201) pm.environment.set('bookingId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{homeownerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": {{serviceId}},\n  \"providerId\": {{providerId}},\n  \"scheduledDate\": \"2026-07-01T10:00:00\",\n  \"description\": \"Kitchen pipe is leaking badly.\",\n  \"serviceType\": \"Plumbing\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings?homeownerId={{homeownerId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings"],
+              "query": [{ "key": "homeownerId", "value": "{{homeownerId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Create Booking as Provider (should fail - wrong role)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 403 Forbidden', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{providerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": {{serviceId}},\n  \"providerId\": {{providerId}},\n  \"scheduledDate\": \"2026-07-01T10:00:00\",\n  \"description\": \"Should not be allowed.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings?homeownerId={{homeownerId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings"],
+              "query": [{ "key": "homeownerId", "value": "{{homeownerId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Booking By Id",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "Accept Booking (Provider)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status field is ACCEPTED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('ACCEPTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{providerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/accept?providerId={{providerId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "accept"],
+              "query": [{ "key": "providerId", "value": "{{providerId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Accept Already-Accepted Booking (should fail)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{providerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/accept?providerId={{providerId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "accept"],
+              "query": [{ "key": "providerId", "value": "{{providerId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Start Job (Provider)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status field is IN_PROGRESS', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('IN_PROGRESS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{providerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/start", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "start"] }
+          }
+        },
+        {
+          "name": "Complete Job (Provider)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status field is COMPLETED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('COMPLETED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{providerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/complete", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "{{bookingId}}", "complete"] }
+          }
+        },
+        {
+          "name": "Get Bookings By Homeowner",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/bookings/homeowner/{{homeownerId}}", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "homeowner", "{{homeownerId}}"] }
+          }
+        },
+        {
+          "name": "Get Bookings By Provider",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{providerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/bookings/provider/{{providerId}}", "host": ["{{baseUrl}}"], "path": ["api", "bookings", "provider", "{{providerId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payments",
+      "item": [
+        {
+          "name": "Initiate Payment (Homeowner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Payment status is PENDING', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('PENDING');",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json().data;",
+                  "    pm.environment.set('paymentId', data.id);",
+                  "    pm.environment.set('stripeIntentId', data.stripePaymentIntent);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/payments/initiate/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "initiate", "{{bookingId}}"] },
+            "description": "NOTE: Requires booking status = COMPLETED (run the Bookings folder fully first). Also requires a valid Stripe test key configured on the server."
+          }
+        },
+        {
+          "name": "Initiate Duplicate Payment (should fail)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/payments/initiate/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "initiate", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "Confirm Payment (Stripe webhook simulation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Payment status is COMPLETED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('COMPLETED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/confirm?paymentIntentId={{stripeIntentId}}",
+              "host": ["{{baseUrl}}"], "path": ["api", "payments", "confirm"],
+              "query": [{ "key": "paymentIntentId", "value": "{{stripeIntentId}}" }]
+            },
+            "description": "This endpoint is normally called by Stripe's webhook, not the client. Used here to simulate a successful payment for testing."
+          }
+        },
+        {
+          "name": "Get Payment By Booking",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/payments/booking/{{bookingId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "booking", "{{bookingId}}"] }
+          }
+        },
+        {
+          "name": "Refund Payment (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Payment status is REFUNDED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('REFUNDED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/payments/refund/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "refund", "{{paymentId}}"] }
+          }
+        },
+        {
+          "name": "Refund as Homeowner (should fail - wrong role)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 403 Forbidden', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/payments/refund/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "payments", "refund", "{{paymentId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Reviews",
+      "item": [
+        {
+          "name": "Submit Review (Homeowner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Rating matches submitted value', () => {",
+                  "    pm.expect(pm.response.json().data.rating).to.eql(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews?homeownerId={{homeownerId}}&bookingId={{bookingId}}&rating=5&comment=Excellent work, very professional!",
+              "host": ["{{baseUrl}}"], "path": ["api", "reviews"],
+              "query": [
+                { "key": "homeownerId", "value": "{{homeownerId}}" },
+                { "key": "bookingId", "value": "{{bookingId}}" },
+                { "key": "rating", "value": "5" },
+                { "key": "comment", "value": "Excellent work, very professional!" }
+              ]
+            },
+            "description": "Requires booking status = COMPLETED."
+          }
+        },
+        {
+          "name": "Submit Duplicate Review (should fail)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews?homeownerId={{homeownerId}}&bookingId={{bookingId}}&rating=4&comment=Again",
+              "host": ["{{baseUrl}}"], "path": ["api", "reviews"],
+              "query": [
+                { "key": "homeownerId", "value": "{{homeownerId}}" },
+                { "key": "bookingId", "value": "{{bookingId}}" },
+                { "key": "rating", "value": "4" },
+                { "key": "comment", "value": "Again" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Provider Reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/reviews/provider/{{providerId}}", "host": ["{{baseUrl}}"], "path": ["api", "reviews", "provider", "{{providerId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Notifications",
+      "item": [
+        {
+          "name": "Get Notifications For Homeowner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array', () => pm.expect(pm.response.json().data).to.be.an('array'));",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.length > 0) pm.environment.set('notificationId', data[0].id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{homeownerId}}", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "{{homeownerId}}"] }
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{homeownerId}}/unread", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "{{homeownerId}}", "unread"] }
+          }
+        },
+        {
+          "name": "Mark Notification As Read",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "{{notificationId}}", "read"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Disputes",
+      "item": [
+        {
+          "name": "Raise Dispute (Homeowner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status field is OPEN', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('OPEN');",
+                  "});",
+                  "if (pm.response.code === 201) pm.environment.set('disputeId', pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/disputes?bookingId={{bookingId}}&raisedById={{homeownerId}}&reason=Work was not completed properly",
+              "host": ["{{baseUrl}}"], "path": ["api", "disputes"],
+              "query": [
+                { "key": "bookingId", "value": "{{bookingId}}" },
+                { "key": "raisedById", "value": "{{homeownerId}}" },
+                { "key": "reason", "value": "Work was not completed properly" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Raise Duplicate Open Dispute (should fail)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/disputes?bookingId={{bookingId}}&raisedById={{homeownerId}}&reason=Again",
+              "host": ["{{baseUrl}}"], "path": ["api", "disputes"],
+              "query": [
+                { "key": "bookingId", "value": "{{bookingId}}" },
+                { "key": "raisedById", "value": "{{homeownerId}}" },
+                { "key": "reason", "value": "Again" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Escalate Dispute",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status field is ESCALATED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('ESCALATED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/disputes/{{disputeId}}/escalate", "host": ["{{baseUrl}}"], "path": ["api", "disputes", "{{disputeId}}", "escalate"] }
+          }
+        },
+        {
+          "name": "Resolve Dispute (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status field is RESOLVED', () => {",
+                  "    pm.expect(pm.response.json().data.status).to.eql('RESOLVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/disputes/{{disputeId}}/resolve?adminId={{adminId}}&resolution=Refund issued to homeowner",
+              "host": ["{{baseUrl}}"], "path": ["api", "disputes", "{{disputeId}}", "resolve"],
+              "query": [
+                { "key": "adminId", "value": "{{adminId}}" },
+                { "key": "resolution", "value": "Refund issued to homeowner" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve Dispute as Homeowner (should fail - wrong role)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 403 Forbidden', () => pm.response.to.have.status(403));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{homeownerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/disputes/{{disputeId}}/resolve?adminId={{adminId}}&resolution=Trying anyway",
+              "host": ["{{baseUrl}}"], "path": ["api", "disputes", "{{disputeId}}", "resolve"],
+              "query": [
+                { "key": "adminId", "value": "{{adminId}}" },
+                { "key": "resolution", "value": "Trying anyway" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Disputes (Admin)",
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"], "type": "text/javascript" } }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/disputes", "host": ["{{baseUrl}}"], "path": ["api", "disputes"] }
+          }
+        }
+      ]
+    }
+  ]
+}
